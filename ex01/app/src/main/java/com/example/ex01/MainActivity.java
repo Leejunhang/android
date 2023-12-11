@@ -15,6 +15,8 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.sub02);
+        getSupportActionBar().setTitle("연습1");
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
     }
     
     public void onClick(View view){
