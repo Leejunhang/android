@@ -17,7 +17,10 @@ public class MainActivity2 extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main2);
+        setContentView(R.layout.sub02);
+
         getSupportActionBar().setTitle("클릭연습");
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
         txtCount = findViewById(R.id.count);
         txtFruit = findViewById(R.id.fruit);
@@ -84,6 +87,8 @@ public class MainActivity2 extends AppCompatActivity {
             Toast.makeText(this, "우동은 시원해", Toast.LENGTH_SHORT).show();
         }    else if (item.getItemId() == R.id.mandoo) {
             Toast.makeText(this, "만두는 고소해", Toast.LENGTH_SHORT).show();
+        }else if (item.getItemId() == android.R.id.home){
+            finish();
         }
         return super.onOptionsItemSelected(item);
     }
