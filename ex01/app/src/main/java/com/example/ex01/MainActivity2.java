@@ -1,10 +1,14 @@
 package com.example.ex01;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.os.Bundle;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.TextView;
+import android.widget.Toast;
 
 public class MainActivity2 extends AppCompatActivity {
     int count=0;
@@ -13,8 +17,11 @@ public class MainActivity2 extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main2);
+        getSupportActionBar().setTitle("클릭연습");
+
         txtCount = findViewById(R.id.count);
         txtFruit = findViewById(R.id.fruit);
+
         findViewById(R.id.btnin).setOnClickListener(onClick);
         findViewById(R.id.btnde).setOnClickListener(onClick);
 
@@ -50,7 +57,7 @@ public class MainActivity2 extends AppCompatActivity {
 
     View.OnLongClickListener onLongClick = new View.OnLongClickListener(){
         @Override
-        public  boolean onLongClick(View v){
+        public boolean onLongClick(View v){
             if(v.getId() == R.id.btnin){
                 count = 100;
             }else{
@@ -60,4 +67,24 @@ public class MainActivity2 extends AppCompatActivity {
             return true;
         }
     };
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.main, menu);
+        return super.onCreateOptionsMenu(menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        if(item.getItemId() == R.id.Jjajang){
+            Toast.makeText(this,"자장은 달콤해", Toast.LENGTH_SHORT).show();
+        } else if (item.getItemId() == R.id.Jjambbong) {
+            Toast.makeText(this,"짬뽕은 매워", Toast.LENGTH_SHORT).show();
+        } else if (item.getItemId() == R.id.udong) {
+            Toast.makeText(this, "우동은 시원해", Toast.LENGTH_SHORT).show();
+        }    else if (item.getItemId() == R.id.mandoo) {
+            Toast.makeText(this, "만두는 고소해", Toast.LENGTH_SHORT).show();
+        }
+        return super.onOptionsItemSelected(item);
+    }
 }
