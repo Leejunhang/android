@@ -10,6 +10,7 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.location.Address;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -20,10 +21,12 @@ import android.widget.ListView;
 import android.widget.SearchView;
 import android.widget.TextView;
 
+import de.hdodenhof.circleimageview.CircleImageView;
+
 public class MainActivity extends AppCompatActivity {
     AddressHelper helper;
     SQLiteDatabase db;
-    String sql ="select _id, name, phone, juso from address ";
+    String sql ="select _id, name, phone, juso, photo from address ";
     JusoAdapter jusoAdapter;
 
     @Override
@@ -96,6 +99,14 @@ public class MainActivity extends AppCompatActivity {
 
             TextView juso=view.findViewById(R.id.juso);
             juso.setText(cursor.getString(3));
+
+            CircleImageView photo=view.findViewById(R.id.photo);
+            String strPhoto=cursor.getString(4);
+            if(strPhoto.equals("")){
+                photo.setImageResource(R.drawable.baseline_face_24);
+            }else{
+                photo.setImageURI(Uri.parse(strPhoto));
+            }
 
             view.findViewById(R.id.btnDelete).setOnClickListener(new View.OnClickListener() {
                 @Override
