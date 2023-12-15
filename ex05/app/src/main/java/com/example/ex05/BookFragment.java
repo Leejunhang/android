@@ -1,5 +1,8 @@
 package com.example.ex05;
 
+import android.app.AlertDialog;
+import android.media.Image;
+import android.os.AsyncTask;
 import android.os.Bundle;
 
 import androidx.fragment.app.Fragment;
@@ -7,58 +10,175 @@ import androidx.fragment.app.Fragment;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.BaseAdapter;
+import android.widget.EditText;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.ListView;
+import android.widget.TextView;
+import android.widget.Toast;
 
-/**
- * A simple {@link Fragment} subclass.
- * Use the {@link BookFragment#newInstance} factory method to
- * create an instance of this fragment.
- */
+import com.squareup.picasso.Picasso;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import java.text.DecimalFormat;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Objects;
+import java.util.*;
+
 public class BookFragment extends Fragment {
+    String query="안드로이드";
+    int page=1;
+    BookAdapter adapter = new BookAdapter();
+    Boolean is_end = false;
 
-    // TODO: Rename parameter arguments, choose names that match
-    // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
-    private static final String ARG_PARAM1 = "param1";
-    private static final String ARG_PARAM2 = "param2";
-
-    // TODO: Rename and change types of parameters
-    private String mParam1;
-    private String mParam2;
-
-    public BookFragment() {
-        // Required empty public constructor
-    }
-
-    /**
-     * Use this factory method to create a new instance of
-     * this fragment using the provided parameters.
-     *
-     * @param param1 Parameter 1.
-     * @param param2 Parameter 2.
-     * @return A new instance of fragment BookFragment.
-     */
-    // TODO: Rename and change types and number of parameters
-    public static BookFragment newInstance(String param1, String param2) {
-        BookFragment fragment = new BookFragment();
-        Bundle args = new Bundle();
-        args.putString(ARG_PARAM1, param1);
-        args.putString(ARG_PARAM2, param2);
-        fragment.setArguments(args);
-        return fragment;
-    }
-
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        if (getArguments() != null) {
-            mParam1 = getArguments().getString(ARG_PARAM1);
-            mParam2 = getArguments().getString(ARG_PARAM2);
-        }
-    }
+    List<HashMap<String, Object>> array=new ArrayList<>();
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_book, container, false);
+        View view=inflater.inflate(R.layout.fragment_blog, container, false);
+        new BookThread().execute();
+
+        ListView list=view.findViewById(R.id.list);
+        list.setAdapter(adapter);
+
+        EditText editQuery= view.findViewById(R.id.query);
+        view.findViewById(R.id.search).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                query=editQuery.getText().toString();
+                page=1;
+                array=new ArrayList<>();
+                new BookThread().execute();
+            }
+        });
+
+        view.findViewById(R.id.more).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(is_end){
+                    Toast.makeText(getActivity(), "마지막 페이지입니다.", Toast.LENGTH_SHORT).show();
+                }else{
+                    page +=1;
+                    new BookThread().execute();
+                }
+            }
+        });
+        return view;
+    }
+
+    //Book 스레드
+    class BookThread extends AsyncTask<String, String, String>{
+        @Override
+        protected String doInBackground(String... strings) {
+            String url="https://dapi.kakao.com/v3/search/book?target=title&query=" + query + "&page" + page;
+            String result=KakaoAPI.connect(url);
+            return result;
+        }
+
+        @Override
+        protected void onPostExecute(String s) {
+            bookParser(s);
+            adapter.notifyDataSetChanged();
+            super.onPostExecute(s);
+        }
+    }
+
+    //도서파싱(.parsing은 꼭 try, catch문 안에서 !)
+    public  void bookParser(String result){
+        try {
+            JSONObject meta = new JSONObject(result).getJSONObject("meta");
+            is_end = meta.getBoolean("is_end");
+            JSONArray jsonArray = new JSONObject(result).getJSONArray("documents");
+            for (int i=0; i< jsonArray.length(); i++){
+                JSONObject obj= jsonArray.getJSONObject(i);
+                HashMap<String ,Object>map=new HashMap<>();
+                map.put("title", obj.getString("title"));
+                map.put("price", obj.getInt("price"));
+                map.put("image", obj.getString("thumbnail"));
+                map.put("contents", obj.getString("contents"));
+                map.put("authors", obj.getString("authors"));
+                array.add(map);
+            }
+        } catch (Exception e){
+            System.out.println("파싱오류:" + e.toString());
+        }
+    }
+
+    //BookAdapter
+    class BookAdapter extends BaseAdapter{
+
+        @Override
+        public int getCount() {
+            return array.size();
+        }
+
+        @Override
+        public Object getItem(int position) {
+            return null;
+        }
+
+        @Override
+        public long getItemId(int position) {
+            return 0;
+        }
+
+        @Override
+        public View getView(int position, View view, ViewGroup parent) {
+            view = getLayoutInflater().inflate(R.layout.item_book, parent, false);
+            HashMap<String, Object> map=array.get(position);
+            ImageView image=view.findViewById(R.id.image);
+            String strImage=map.get("image").toString();
+            if(strImage.equals("")){
+                image.setImageResource(R.drawable.baseline_library_books_24);
+            }else{
+                Picasso.with(getActivity())
+                        .load(strImage)
+                        .into(image);
+            }
+            TextView title=view.findViewById(R.id.title);
+            String strTitle=map.get("title").toString();
+            title.setText(strTitle);
+
+            TextView price= view.findViewById(R.id.price);
+            String strPrice=map.get("price").toString();
+            int intPrice=Integer.parseInt(strPrice);
+            DecimalFormat df=new DecimalFormat("#,###원");
+            price.setText(df.format(intPrice));
+
+            TextView authors=view.findViewById(R.id.authors);
+            String strAuthors=map.get("authors").toString();
+            authors.setText(strAuthors);
+
+            String strContents=map.get("contents").toString();
+            view.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    View layout=getLayoutInflater().inflate(R.layout.item_contents,parent ,false);
+                    ImageView image=layout.findViewById(R.id.image);
+                    if(strImage.equals("")){
+                        image.setImageResource(R.drawable.baseline_library_books_24);
+                    }else{
+                        Picasso.with(getActivity())
+                                .load(strImage)
+                                .into(image);
+                    }
+
+                    TextView contents=layout.findViewById(R.id.contents);
+                    contents.setText(strContents);
+                    new AlertDialog.Builder(getActivity())
+                            .setTitle(strTitle)
+                            .setView(layout)
+                            .setPositiveButton("확인", null)
+                            .show();
+                }
+            });
+            return view;
+        }
     }
 }
+

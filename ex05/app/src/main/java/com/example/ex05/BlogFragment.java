@@ -50,6 +50,7 @@ public class BlogFragment extends Fragment {
         view.findViewById(R.id.search).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                page =1;
                 query=editQuery.getText().toString();
                 array=new ArrayList<>();
                 new BlogThread().execute();

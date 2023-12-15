@@ -1,5 +1,7 @@
 package com.example.ex05;
 
+import android.content.Intent;
+import android.os.AsyncTask;
 import android.os.Bundle;
 
 import androidx.fragment.app.Fragment;
@@ -7,58 +9,133 @@ import androidx.fragment.app.Fragment;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.BaseAdapter;
+import android.widget.EditText;
+import android.widget.ListView;
+import android.widget.TextView;
+import android.widget.Toast;
 
-/**
- * A simple {@link Fragment} subclass.
- * Use the {@link LocalFragment#newInstance} factory method to
- * create an instance of this fragment.
- */
+import org.json.JSONArray;
+import org.json.JSONObject;
+import java.util.*;
+import java.util.HashMap;
+
 public class LocalFragment extends Fragment {
-
-    // TODO: Rename parameter arguments, choose names that match
-    // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
-    private static final String ARG_PARAM1 = "param1";
-    private static final String ARG_PARAM2 = "param2";
-
-    // TODO: Rename and change types of parameters
-    private String mParam1;
-    private String mParam2;
-
-    public LocalFragment() {
-        // Required empty public constructor
-    }
-
-    /**
-     * Use this factory method to create a new instance of
-     * this fragment using the provided parameters.
-     *
-     * @param param1 Parameter 1.
-     * @param param2 Parameter 2.
-     * @return A new instance of fragment LocalFragment.
-     */
-    // TODO: Rename and change types and number of parameters
-    public static LocalFragment newInstance(String param1, String param2) {
-        LocalFragment fragment = new LocalFragment();
-        Bundle args = new Bundle();
-        args.putString(ARG_PARAM1, param1);
-        args.putString(ARG_PARAM2, param2);
-        fragment.setArguments(args);
-        return fragment;
-    }
-
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        if (getArguments() != null) {
-            mParam1 = getArguments().getString(ARG_PARAM1);
-            mParam2 = getArguments().getString(ARG_PARAM2);
-        }
-    }
+    String query="가산디지털";
+    int page=1;
+    Boolean is_end = false;
+    List<HashMap<String, Object>>  array=new ArrayList<>();
+    LocalAdapter adapter=new LocalAdapter();
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_local, container, false);
+        View view = inflater.inflate(R.layout.fragment_blog, container, false);
+        new LocalThread().execute();
+
+        ListView list=view.findViewById(R.id.list);
+        list.setAdapter(adapter);
+
+        EditText editQuery=view.findViewById(R.id.query);
+        view.findViewById(R.id.search).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                query=editQuery.getText().toString();
+                page=1;
+                array=new ArrayList<>();
+                new LocalThread().execute();
+            }
+        });
+
+        view.findViewById(R.id.more).setOnClickListener(new View.OnClickListener(){
+            @Override
+            public void onClick(View v) {
+                if(is_end){
+                    Toast.makeText(getActivity(), "마지막 페이지입니다.", Toast.LENGTH_SHORT).show();
+                }else{
+                    page +=1;
+                    new LocalThread().execute();
+                }
+            }
+        });
+        return view;
     }
-}
+
+    class LocalThread extends AsyncTask<String, String, String>{
+        @Override
+        protected String doInBackground(String... strings) {
+            String url="https://dapi.kakao.com/v2/local/search/keyword.json?query=" + query + "&page=" +page;
+            String result = KakaoAPI.connect(url);
+            return result;
+        }
+
+        @Override
+        protected void onPostExecute(String s) {
+            super.onPostExecute(s);
+            LocalParser(s);
+            adapter.notifyDataSetChanged();
+        }
+    }
+
+    public void LocalParser(String result){
+        try{
+            JSONObject meta= new JSONObject(result).getJSONObject("meta");
+            is_end=meta.getBoolean("is_end");
+            JSONArray jArray= new JSONObject(result).getJSONArray("documents");
+            for(int i=0; i<jArray.length(); i++){
+                JSONObject obj=jArray.getJSONObject(i);
+                HashMap<String, Object> map=new HashMap<>();
+                map.put("name", obj.getString("place_name"));
+                map.put("address", obj.getString("address_name"));
+                map.put("phone", obj.getString("phone"));
+                map.put("x", obj.getDouble("x"));
+                map.put("y", obj.getDouble("y"));
+                array.add(map);
+            }
+        }catch (Exception e){
+            System.out.println("파서오류:" + e.toString());
+        }
+    }//onCreate
+
+    class LocalAdapter extends BaseAdapter{
+
+        @Override
+        public int getCount() {
+            return array.size();
+        }
+        @Override
+        public Object getItem(int position) {
+            return null;
+        }
+        @Override
+        public long getItemId(int position) {
+            return 0;
+        }
+        @Override
+        public View getView(int position, View view, ViewGroup parent) {
+            view=getLayoutInflater().inflate(R.layout.item_blog, parent, false);
+            HashMap<String, Object> map=array.get(position);
+            TextView name=view.findViewById(R.id.title);
+
+            String strName=map.get("name").toString();
+            name.setText(map.get("name").toString());
+            TextView address=view.findViewById(R.id.contents);
+            String strPhone=map.get("phone").toString();
+            String strAddress=map.get("address").toString();
+            address.setText(strAddress + "\n" + strPhone);
+            String x = map.get("x").toString();
+            String y = map.get("y").toString();
+            view.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    Intent intent=new Intent(getActivity(), MapsActivity.class);
+                    intent.putExtra("x", x);
+                    intent.putExtra("y", y);
+                    intent.putExtra("name", strName);
+                    startActivity(intent);
+                }
+            });
+            return view;
+        }
+    }
+}//Activity
