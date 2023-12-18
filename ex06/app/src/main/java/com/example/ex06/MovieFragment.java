@@ -1,64 +1,122 @@
 package com.example.ex06;
 
+import android.content.Intent;
+import android.icu.util.RangeValueIterator;
+import android.os.AsyncTask;
 import android.os.Bundle;
 
+import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
+import androidx.recyclerview.widget.RecyclerView;
+import androidx.recyclerview.widget.StaggeredGridLayoutManager;
 
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.ImageView;
+import android.widget.TextView;
 
-/**
- * A simple {@link Fragment} subclass.
- * Use the {@link BookFragment#newInstance} factory method to
- * create an instance of this fragment.
- */
+import com.squareup.picasso.Picasso;
+
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
+
+import java.lang.annotation.Documented;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+
+
 public class MovieFragment extends Fragment {
-
-    // TODO: Rename parameter arguments, choose names that match
-    // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
-    private static final String ARG_PARAM1 = "param1";
-    private static final String ARG_PARAM2 = "param2";
-
-    // TODO: Rename and change types of parameters
-    private String mParam1;
-    private String mParam2;
-
-    public MovieFragment() {
-        // Required empty public constructor
-    }
-
-    /**
-     * Use this factory method to create a new instance of
-     * this fragment using the provided parameters.
-     *
-     * @param param1 Parameter 1.
-     * @param param2 Parameter 2.
-     * @return A new instance of fragment BookFragment.
-     */
-    // TODO: Rename and change types and number of parameters
-    public static BookFragment newInstance(String param1, String param2) {
-        BookFragment fragment = new BookFragment();
-        Bundle args = new Bundle();
-        args.putString(ARG_PARAM1, param1);
-        args.putString(ARG_PARAM2, param2);
-        fragment.setArguments(args);
-        return fragment;
-    }
-
+    List<HashMap<String, Object>> array=new ArrayList<>();
+    MovieAdapter adapter = new MovieAdapter();
     @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        if (getArguments() != null) {
-            mParam1 = getArguments().getString(ARG_PARAM1);
-            mParam2 = getArguments().getString(ARG_PARAM2);
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        View view = inflater.inflate(R.layout.fragment_shop, container, false);
+        view.findViewById(R.id.more).setVisibility(View.GONE);
+        view.findViewById(R.id.query).setVisibility(View.GONE);
+        view.findViewById(R.id.search).setVisibility(View.GONE);
+        new MovieThread().execute();
+
+        RecyclerView list=view.findViewById(R.id.list);
+        list.setAdapter(adapter);
+        StaggeredGridLayoutManager manager=new StaggeredGridLayoutManager(1, StaggeredGridLayoutManager.HORIZONTAL);
+        return view;
+    }
+
+    class MovieThread extends AsyncTask<String, String, String> {
+        protected String doInBackground(String... strings) {
+            try {
+                Document doc = Jsoup.connect("http://www.cgv.co.kr/movies/?lt=1&ft=0").get();
+                Elements es = doc.select(".sect-movie-chart ol");
+                for (Element e : es.select("li")) {
+                    String rank = e.select(".rank").text();
+                    String title= e.select(".title").text();
+                    String image= e.select("img").attr("src");
+                    String link="https://www.cgv.co.kr/" + e.select(".link-reservation").attr("href");
+                    HashMap<String, Object> map=new HashMap<>();
+                    map.put("rank", rank);
+                    map.put("title", title);
+                    map.put("img", image);
+                    map.put("link", link);
+                    array.add(map);
+                }
+            } catch (Exception e) {
+                System.out.println("스크래핑오류:" + e.toString());
+            }
+            return null;
+        }
+            @Override
+            protected void onPostExecute(String s) {
+                super.onPostExecute(s);
+                adapter.notifyDataSetChanged();
+            }
+    }//onCreate
+
+    class  MovieAdapter extends RecyclerView.Adapter<MovieAdapter.ViewHolder>{
+        @NonNull
+        @Override
+        public MovieAdapter.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            View view = getLayoutInflater().inflate(R.layout.item_movie, parent, false);
+            return new ViewHolder(view);
+        }
+
+        @Override
+        public void onBindViewHolder(@NonNull MovieAdapter.ViewHolder holder, int position) {
+                HashMap<String, Object> map=array.get(position);
+                holder.title.setText(map.get("title").toString());
+                holder.rank.setText(map.get("rank").toString());
+            Picasso.with(getActivity()).load(map.get("image").toString()).into(holder.image);
+            holder.btn.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    Intent intent=new Intent(getActivity(), WebActivity.class);
+                    intent.putExtra("link", map.get("link").toString());
+                    startActivity(intent);
+                }
+            });
+        }
+
+        @Override
+        public int getItemCount() {
+            return array.size();
+        }
+
+        public class ViewHolder extends RecyclerView.ViewHolder {
+            ImageView image;
+            TextView title, rank;
+            Button btn;
+            public ViewHolder(@NonNull View itemView) {
+                super(itemView);
+                image = itemView.findViewById(R.id.image);
+                title = itemView.findViewById(R.id.title);
+                rank = itemView.findViewById(R.id.rank);
+                btn = itemView.findViewById(R.id.btn);
+            }
         }
     }
+}//Activity
 
-    @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
-        // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_book, container, false);
-    }
-}

@@ -1,9 +1,11 @@
 package com.example.ex06;
 
+import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
+import androidx.cardview.widget.CardView;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.recyclerview.widget.StaggeredGridLayoutManager;
@@ -25,17 +27,17 @@ import org.json.JSONObject;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Objects;
 
 
 public class ShopFragment extends Fragment {
-    String query="시계";
+    String query="모니터";
     ArrayList<HashMap<String, Object>> array=new ArrayList<>();
     ShopAdapter adapter = new ShopAdapter();
     int page=1;
 
     int total=0;
     int start=1;
+
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
@@ -50,22 +52,22 @@ public class ShopFragment extends Fragment {
         view.findViewById(R.id.search).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                page=1;
                 array=new ArrayList<>();
-                EditText editQuery=view.findViewById(R.id.query);
-                query=editQuery.getText().toString();
+                EditText edtQuery=view.findViewById(R.id.query);
+                query=edtQuery.getText().toString();
                 new ShopThread().execute();
             }
         });
 
-        view.findViewById(R.id.more).setOnClickListener(new View.OnClickListener(){
-
+        view.findViewById(R.id.more).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(page >=10){
-                    Toast.makeText(getActivity(), "마지막 페이지입니다.", Toast.LENGTH_SHORT).show();
+                if(page ==10 || start+10 >=total) {
+                    Toast.makeText(getActivity(), "마지막페이지입니다.", Toast.LENGTH_SHORT).show();
                 }else {
                     page += 1;
-                    start = (page-1) * 10 +1;
+                    start = (page-1) * 10 + 1;
                     new ShopThread().execute();
                 }
             }
@@ -90,8 +92,9 @@ public class ShopFragment extends Fragment {
     }
     public void shopParser(String result){
         try{
-            //JSONObject objtotal=new JSONObject(result).getJSONObject("total");
-            //total=Integer.parseInt(objtotal.toString());
+            JSONObject object=new JSONObject(result);
+            total = Integer.parseInt(object.get("total").toString());
+            //total=Integer.parseInt(objTotal.toString());
             JSONArray jArray= new JSONObject(result).getJSONArray("items");
             for(int i=0; i<jArray.length(); i++){
                 JSONObject obj=jArray.getJSONObject(i);
@@ -99,7 +102,7 @@ public class ShopFragment extends Fragment {
                 map.put("title", obj.getString("title"));
                 map.put("link", obj.getString("link"));
                 map.put("price", obj.getInt("lprice"));
-                map.put("image", obj.getString(("image")));
+                map.put("image", obj.getString("image"));
                 array.add(map);
             }
         }catch (Exception e){
@@ -129,6 +132,15 @@ public class ShopFragment extends Fragment {
             }else{
                 Picasso.with(getActivity()).load(strImage).into(holder.image);
             }
+            holder.item.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    Intent intent =new Intent(getActivity(), WebActivity.class);
+                    System.out.println("link.................." + map.get("link").toString());
+                    intent.putExtra("link" , map.get("link").toString());
+                    startActivity(intent);
+                }
+            });
         }
 
         @Override
@@ -139,12 +151,16 @@ public class ShopFragment extends Fragment {
         public class ViewHolder extends RecyclerView.ViewHolder {
             TextView title, price;
             ImageView image;
+            CardView item;
             public ViewHolder(@NonNull View itemView) {
                 super(itemView);
                 title=itemView.findViewById(R.id.title);
                 price=itemView.findViewById(R.id.price);
                 image=itemView.findViewById(R.id.image);
+                item = itemView.findViewById(R.id.item);
             }
         }
     }
 }
+
+
